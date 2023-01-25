@@ -19,14 +19,56 @@
 #define LEFT_ARROW                  4
 #define CHECK_RETURN_VAL(val)       (val == UP_ARROW || val == DOWN_ARROW || val == LEFT_ARROW || val == RIGHT_ARROW)
 
+
 typedef struct boxes{
     int cell;
     bool merge;
 }box_t;
 
 box_t box[4][4];
+box_t box_copy[4][4];
 
 struct termios orig_termios;
+
+int up_arrow(box_t b[BOX_SIZE][BOX_SIZE]);
+int down_arrow(box_t b[BOX_SIZE][BOX_SIZE]);
+int left_arrow(box_t b[BOX_SIZE][BOX_SIZE]);
+int right_arrow(box_t b[BOX_SIZE][BOX_SIZE]);
+
+
+/*
+Welcome to the Game :)
+*/
+void print_intro()
+{   
+    printf(" __      __       .__                                \n");
+    printf("/  \\    /  \\ ____ |  |   ____  ____   _____   ____   \n");
+    printf("\\   \\/\\/   // __ \\|  | _/ ___\\/  _ \\ /     \\_/ __ \\  \n");
+    printf(" \\        /\\  ___/|  |_\\  \\__(  <_> )  Y Y  \\  ___/  \n");
+    printf("  \\__/\\  /  \\___  >____/\\___  >____/|__|_|  /\\___  > \n");
+    printf("       \\/       \\/          \\/            \\/     \\/  \n");
+
+    printf("         ___________     \n");
+    printf("         \\__    ___/___  \n");
+    printf("           |    | /  _ \\ \n");
+    printf("           |    |(  <_> )\n");
+    printf("           |____| \\____/ \n");
+
+    printf("    _______________      _____   ______  \n");
+    printf("    \\_____  \\   _  \\    /  |  | /  __  \\ \n");
+    printf("     /  ____/  /_\\  \\  /   |  |_>      < \n");
+    printf("    /       \\  \\_/   \\/    ^   /   --   \\ \n");
+    printf("    \\_______ \\_____  /\\____   |\\______  /\n");
+    printf("            \\/     \\/      |__|       \\/ \n");
+
+    printf("\n\n\nNOTE:\n\n");
+    printf("    Move UP     : Up Arrow    / W\n");
+    printf("    Move Down   : Down Arrow  / S\n");
+    printf("    Move Left   : Left Arrow  / A\n");
+    printf("    Move Right  : Right Arrow / D\n");
+
+    printf("\n\nPress Any Key To Start The Game\n\n\n");
+}
 
 /*
 Generating random number between 0-9.
@@ -70,6 +112,18 @@ void insert_new_val_to_box()
     box[div][rem].cell = new_val; 
 }
 
+/*
+Converting integer to string so that we can print integers and "" in the box box.
+"" -> So that the cell can look empty.
+*/
+void int_to_string(int val, char *str)
+{
+    if(val)
+        sprintf(str, "%d", val);
+    else
+        sprintf(str, "%s", "");    
+}
+
 void print_box()
 {   
     int i, j;
@@ -77,23 +131,41 @@ void print_box()
     printf("\n");
     for(i = 0; i < BOX_SIZE; ++i)
     {
-        for(j = 0; j < BOX_SIZE; ++j)
-        {
-            if(box[i][j].cell == 0)
-                printf("%8c ", '-');
-            else
-                printf("%8d ", box[i][j].cell);
-        }
-        printf("\n\n");
+        char a[5], b[5], c[5], d[5];
+        int_to_string(box[i][0].cell, a);
+        int_to_string(box[i][1].cell, b);
+        int_to_string(box[i][2].cell, c);
+        int_to_string(box[i][3].cell, d);
+
+        printf("      __________  __________  __________  __________ \n");
+        printf("     |          ||          ||          ||          |\n");	
+        printf("     |  %5s   ||  %5s   ||  %5s   ||  %5s   |\n", a, b, c, d);
+        printf("     |__________||__________||__________||__________|\n");
+
     }
     printf("\n");
+}
+
+/* 
+Creating a copy of the main box, so that we can use this in check_result() 
+*/
+void copy_box()
+{
+    int i, j;
+    for(i = 0; i < BOX_SIZE; ++i)
+    {
+        for(j = 0; j < BOX_SIZE; ++j)
+        {
+            box_copy[i][j].cell = box[i][j].cell;
+        }
+    }
 }
 
 /*
 Check whether all the cells are filled up. If there are no place to move,
 then the game is finished.
 */
-int check_result()
+int check_cell_filled()
 {
     int i, j, found = FAILURE;
 
@@ -114,6 +186,34 @@ int check_result()
     return found;
 }
 
+/*
+Checks the result by seaching the available movement in the box and whether the box is full
+*/
+int check_result()
+{   
+    int filled = check_cell_filled();
+    int ret = FAILURE;
+
+    copy_box();
+    int up = up_arrow(box_copy);
+    copy_box();
+    int down = down_arrow(box_copy);
+    copy_box();
+    int left = left_arrow(box_copy);
+    copy_box();
+    int right = right_arrow(box_copy);
+
+    if(!filled || up || down|| left|| right)
+    {
+        ret = SUCCESS;
+    }
+    else
+    {
+        ret = FAILURE;
+    }
+
+    return ret;
+}
 /*
 Check the max number in the matrix
 */
@@ -167,7 +267,7 @@ void move(box_t *src, box_t *dst)
     src->merge = false;
 }
 
-void reset_merge()
+void reset_merge(box_t b[][BOX_SIZE])
 {
     int i, j;
     for(i = 0; i < BOX_SIZE; ++i)
@@ -187,7 +287,7 @@ return value:
     0           - changes are there in box
     UP_ARROW    - no changes to the box
 */
-int up_arrow()
+int up_arrow(box_t b[][BOX_SIZE])
 {
     int i, j, change = NO_MOVEMENT, duplicate = 0;
 
@@ -197,18 +297,18 @@ int up_arrow()
         {   
             duplicate = i;
 
-            while((box[i][j].cell != 0) && i > 0)
+            while((b[i][j].cell != 0) && i > 0)
             {
-                if(box[i-1][j].cell == 0)
+                if(b[i-1][j].cell == 0)
                 {
-                    move(&box[i][j], &box[i-1][j]);
+                    move(&b[i][j], &b[i-1][j]);
                     change = UP_ARROW;
                 }
-                else if(box[i][j].cell == box[i-1][j].cell && box[i-1][j].merge == false && box[i][j].merge == false)
+                else if(b[i][j].cell == b[i-1][j].cell && b[i-1][j].merge == false && b[i][j].merge == false)
                 {
-                    box[i][j].cell *= 2;
-                    box[i-1][j].merge = true;
-                    move(&box[i][j], &box[i-1][j]);
+                    b[i][j].cell *= 2;
+                    b[i-1][j].merge = true;
+                    move(&b[i][j], &b[i-1][j]);
                     change = UP_ARROW;
                     break;
                 }
@@ -219,7 +319,7 @@ int up_arrow()
         }
     }
 
-    reset_merge();
+    reset_merge(b);
 
     return change;
 }
@@ -227,7 +327,7 @@ int up_arrow()
 /* 
 Down arrow key pressed
 */
-int down_arrow()
+int down_arrow(box_t b[][BOX_SIZE])
 {
     int i, j, change = NO_MOVEMENT, duplicate = 0;
 
@@ -237,18 +337,18 @@ int down_arrow()
         {   
             duplicate = i;
 
-            while((box[i][j].cell != 0) && i < BOX_SIZE - 1)
+            while((b[i][j].cell != 0) && i < BOX_SIZE - 1)
             {
-                if(box[i+1][j].cell == 0)
+                if(b[i+1][j].cell == 0)
                 {
-                    move(&box[i][j], &box[i+1][j]);
+                    move(&b[i][j], &b[i+1][j]);
                     change = DOWN_ARROW;
                 }
-                else if(box[i][j].cell == box[i+1][j].cell && box[i+1][j].merge == false && box[i][j].merge == false)
+                else if(b[i][j].cell == b[i+1][j].cell && b[i+1][j].merge == false && b[i][j].merge == false)
                 {
-                    box[i][j].cell *= 2;
-                    box[i+1][j].merge = true;
-                    move(&box[i][j], &box[i+1][j]);
+                    b[i][j].cell *= 2;
+                    b[i+1][j].merge = true;
+                    move(&b[i][j], &b[i+1][j]);
                     change = DOWN_ARROW;
                     break;
                 }
@@ -259,7 +359,7 @@ int down_arrow()
         }
     }
 
-    reset_merge();
+    reset_merge(b);
 
     return change;
 }
@@ -267,7 +367,7 @@ int down_arrow()
 /* 
 Right arrow key pressed
 */
-int right_arrow()
+int right_arrow(box_t b[][BOX_SIZE])
 {
     int i, j, change = NO_MOVEMENT, duplicate = 0;
 
@@ -277,18 +377,18 @@ int right_arrow()
         {   
             duplicate = j;
 
-            while((box[i][j].cell != 0) && j < BOX_SIZE - 1)
+            while((b[i][j].cell != 0) && j < BOX_SIZE - 1)
             {
-                if(box[i][j+1].cell == 0)
+                if(b[i][j+1].cell == 0)
                 {
-                    move(&box[i][j], &box[i][j+1]);
+                    move(&b[i][j], &b[i][j+1]);
                     change = RIGHT_ARROW;
                 }
-                else if(box[i][j].cell == box[i][j+1].cell && box[i][j+1].merge == false && box[i][j].merge == false)
+                else if(b[i][j].cell == b[i][j+1].cell && b[i][j+1].merge == false && b[i][j].merge == false)
                 {
-                    box[i][j].cell *= 2;
-                    box[i][j+1].merge = true;
-                    move(&box[i][j], &box[i][j+1]);
+                    b[i][j].cell *= 2;
+                    b[i][j+1].merge = true;
+                    move(&b[i][j], &b[i][j+1]);
                     change = RIGHT_ARROW;
                     break;
                 }
@@ -299,7 +399,7 @@ int right_arrow()
         }
     }
 
-    reset_merge();
+    reset_merge(b);
 
     return change;
 }
@@ -307,7 +407,7 @@ int right_arrow()
 /* 
 Left arrow key pressed
 */
-int left_arrow()
+int left_arrow(box_t b[][BOX_SIZE])
 {
     int i, j, change = NO_MOVEMENT, duplicate = 0;
 
@@ -317,18 +417,18 @@ int left_arrow()
         {   
             duplicate = j;
 
-            while((box[i][j].cell != 0) && j > 0)
+            while((b[i][j].cell != 0) && j > 0)
             {
-                if(box[i][j-1].cell == 0)
+                if(b[i][j-1].cell == 0)
                 {
-                    move(&box[i][j], &box[i][j-1]);
+                    move(&b[i][j], &b[i][j-1]);
                     change = LEFT_ARROW;
                 }
-                else if(box[i][j].cell == box[i][j-1].cell && box[i][j-1].merge == false && box[i][j].merge == false)
+                else if(b[i][j].cell == b[i][j-1].cell && b[i][j-1].merge == false && b[i][j].merge == false)
                 {
-                    box[i][j].cell *= 2;
-                    box[i][j-1].merge = true;
-                    move(&box[i][j], &box[i][j-1]);
+                    b[i][j].cell *= 2;
+                    b[i][j-1].merge = true;
+                    move(&b[i][j], &b[i][j-1]);
                     change = LEFT_ARROW;
                     break;
                 }
@@ -339,7 +439,7 @@ int left_arrow()
         }
     }
 
-    reset_merge();
+    reset_merge(b);
 
     return change;
 }
@@ -361,26 +461,24 @@ int arrows_detected(char user_input)
     switch(user_input)
     {
         case 'A':
-            ret = up_arrow();
-
+            ret = up_arrow(box);
         break;
 
         case 'B':
-            ret = down_arrow();
+            ret = down_arrow(box);
         break;
 
         case 'C':
-            ret = right_arrow();
+            ret = right_arrow(box);
         break;
 
         case 'D':
-            ret = left_arrow();
+            ret = left_arrow(box);
         break;
 
         default:
-            ret = -0;
+            ret = 0;
     } 
-
     return ret;
 }
 
@@ -397,22 +495,22 @@ int check_letters(char user_input)
 
         case 'W':
         case 'w':
-            ret = up_arrow();
+            ret = up_arrow(box);
         break;  
 
         case 'S':
         case 's':
-            ret = down_arrow();
+            ret = down_arrow(box);
         break; 
 
         case 'A':
         case 'a':
-            ret = left_arrow();
+            ret = left_arrow(box);
         break; 
 
         case 'D':
         case 'd':
-            ret = right_arrow();
+            ret = right_arrow(box);
         break; 
 
         default:
@@ -424,33 +522,42 @@ int check_letters(char user_input)
 
 int main()
 {
-    int i, j, val, max_point = 0, close = 0, checking_input = 0, cntrl_press = 0;
+    int i, j, val, max_point = 0, checking_input = 0;
+    bool cntrl_press = false, close = false;
     char user_input;
+
+    system("clear");
 
     srand(time(0));
     enableRawMode(); 
 
-    do{       
-        if(check_result())
-        {
-            max_point = check_max_point();
-            break;
-        }
+    print_intro();
+    read(STDIN_FILENO, &user_input, 1);
 
+    do{       
+        system("clear"); 
+        
         insert_new_val_to_box();
         print_box();
+        
+        if(check_result())
+        {
+            printf("\nGAME OVER\n");
+            max_point = check_max_point();
+            break;
+        }    
 
         while (1) 
         {
             read(STDIN_FILENO, &user_input, 1);
             if(iscntrl(user_input)) 
             {
-                cntrl_press = 1; 
+                cntrl_press = true; 
             } 
             
-            if(cntrl_press == 1 && (user_input == 'A' || user_input == 'B' || user_input == 'C' || user_input == 'D'))
+            if(cntrl_press == true && (user_input == 'A' || user_input == 'B' || user_input == 'C' || user_input == 'D'))
             {
-                cntrl_press = 0;
+                cntrl_press = false;
                 checking_input = arrows_detected(user_input);
                 if(CHECK_RETURN_VAL(checking_input))
                 {
@@ -467,7 +574,7 @@ int main()
                 checking_input = check_letters(user_input);
                 if(checking_input == CLOSE_PROG)
                 {
-                    close = 1;
+                    close = true;
                     break;
                 }
                 else if(CHECK_RETURN_VAL(checking_input))
@@ -484,5 +591,5 @@ int main()
 
     }while(!close);
 
-    printf("\nScore : %d\n", max_point);
+    printf("\nScore : %d\n\n", max_point);
 }
