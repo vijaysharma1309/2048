@@ -27,13 +27,14 @@ typedef struct boxes{
 
 box_t box[4][4];
 box_t box_copy[4][4];
+unsigned int total_score;
 
 struct termios orig_termios;
 
-int up_arrow(box_t b[BOX_SIZE][BOX_SIZE]);
-int down_arrow(box_t b[BOX_SIZE][BOX_SIZE]);
-int left_arrow(box_t b[BOX_SIZE][BOX_SIZE]);
-int right_arrow(box_t b[BOX_SIZE][BOX_SIZE]);
+int up_arrow(box_t b[BOX_SIZE][BOX_SIZE], bool);
+int down_arrow(box_t b[BOX_SIZE][BOX_SIZE], bool);
+int left_arrow(box_t b[BOX_SIZE][BOX_SIZE], bool);
+int right_arrow(box_t b[BOX_SIZE][BOX_SIZE], bool);
 
 
 /*
@@ -144,6 +145,8 @@ void print_box()
 
     }
     printf("\n");
+
+    printf("\n Score : %d\n\n", total_score);
 }
 
 /* 
@@ -195,13 +198,13 @@ int check_result()
     int ret = FAILURE;
 
     copy_box();
-    int up = up_arrow(box_copy);
+    int up = up_arrow(box_copy, 1);
     copy_box();
-    int down = down_arrow(box_copy);
+    int down = down_arrow(box_copy, 1);
     copy_box();
-    int left = left_arrow(box_copy);
+    int left = left_arrow(box_copy, 1);
     copy_box();
-    int right = right_arrow(box_copy);
+    int right = right_arrow(box_copy, 1);
 
     if(!filled || up || down|| left|| right)
     {
@@ -282,12 +285,11 @@ void reset_merge(box_t b[][BOX_SIZE])
 /*
 return 0 if unchanged and UP_ARROW if changes are made when moving up...
 if no changes are there, then no need to add a new value in the box
-
 return value: 
     0           - changes are there in box
     UP_ARROW    - no changes to the box
 */
-int up_arrow(box_t b[][BOX_SIZE])
+int up_arrow(box_t b[][BOX_SIZE], bool copy)
 {
     int i, j, change = NO_MOVEMENT, duplicate = 0;
 
@@ -308,6 +310,10 @@ int up_arrow(box_t b[][BOX_SIZE])
                 {
                     b[i][j].cell *= 2;
                     b[i-1][j].merge = true;
+                    if(!copy)
+                    {
+                        total_score += b[i][j].cell;
+                    }
                     move(&b[i][j], &b[i-1][j]);
                     change = UP_ARROW;
                     break;
@@ -327,7 +333,7 @@ int up_arrow(box_t b[][BOX_SIZE])
 /* 
 Down arrow key pressed
 */
-int down_arrow(box_t b[][BOX_SIZE])
+int down_arrow(box_t b[][BOX_SIZE], bool copy)
 {
     int i, j, change = NO_MOVEMENT, duplicate = 0;
 
@@ -348,6 +354,10 @@ int down_arrow(box_t b[][BOX_SIZE])
                 {
                     b[i][j].cell *= 2;
                     b[i+1][j].merge = true;
+                    if(!copy)
+                    {
+                        total_score += b[i][j].cell;
+                    }
                     move(&b[i][j], &b[i+1][j]);
                     change = DOWN_ARROW;
                     break;
@@ -367,7 +377,7 @@ int down_arrow(box_t b[][BOX_SIZE])
 /* 
 Right arrow key pressed
 */
-int right_arrow(box_t b[][BOX_SIZE])
+int right_arrow(box_t b[][BOX_SIZE], bool copy)
 {
     int i, j, change = NO_MOVEMENT, duplicate = 0;
 
@@ -388,6 +398,10 @@ int right_arrow(box_t b[][BOX_SIZE])
                 {
                     b[i][j].cell *= 2;
                     b[i][j+1].merge = true;
+                    if(!copy)
+                    {
+                        total_score += b[i][j].cell;
+                    }
                     move(&b[i][j], &b[i][j+1]);
                     change = RIGHT_ARROW;
                     break;
@@ -407,7 +421,7 @@ int right_arrow(box_t b[][BOX_SIZE])
 /* 
 Left arrow key pressed
 */
-int left_arrow(box_t b[][BOX_SIZE])
+int left_arrow(box_t b[][BOX_SIZE], bool copy)
 {
     int i, j, change = NO_MOVEMENT, duplicate = 0;
 
@@ -428,6 +442,10 @@ int left_arrow(box_t b[][BOX_SIZE])
                 {
                     b[i][j].cell *= 2;
                     b[i][j-1].merge = true;
+                    if(!copy)
+                    {
+                        total_score += b[i][j].cell;
+                    }
                     move(&b[i][j], &b[i][j-1]);
                     change = LEFT_ARROW;
                     break;
@@ -461,19 +479,19 @@ int arrows_detected(char user_input)
     switch(user_input)
     {
         case 'A':
-            ret = up_arrow(box);
+            ret = up_arrow(box, 0);
         break;
 
         case 'B':
-            ret = down_arrow(box);
+            ret = down_arrow(box, 0);
         break;
 
         case 'C':
-            ret = right_arrow(box);
+            ret = right_arrow(box, 0);
         break;
 
         case 'D':
-            ret = left_arrow(box);
+            ret = left_arrow(box, 0);
         break;
 
         default:
@@ -495,22 +513,22 @@ int check_letters(char user_input)
 
         case 'W':
         case 'w':
-            ret = up_arrow(box);
+            ret = up_arrow(box, 0);
         break;  
 
         case 'S':
         case 's':
-            ret = down_arrow(box);
+            ret = down_arrow(box, 0);
         break; 
 
         case 'A':
         case 'a':
-            ret = left_arrow(box);
+            ret = left_arrow(box, 0);
         break; 
 
         case 'D':
         case 'd':
-            ret = right_arrow(box);
+            ret = right_arrow(box, 0);
         break; 
 
         default:
@@ -591,5 +609,6 @@ int main()
 
     }while(!close);
 
-    printf("\nScore : %d\n\n", max_point);
+    printf("\nMax Cell : %d\n\n", max_point);
+    printf("Total Score : %d\n\n", total_score);
 }
